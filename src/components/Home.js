@@ -1,9 +1,13 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom'; // Import useNavigate from react-router-dom
 import './styles.css'; // assuming you have your CSS file in the same directory
 
 function Home() {
+  const navigate = useNavigate(); // Initialize the useNavigate hook
+
   const bookWithAI = () => {
-    // Define functionality for booking with AI
+    // Change the URL to the signup page
+    navigate('/signup'); // This will change the route to /signup
   };
 
   return (

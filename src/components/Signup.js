@@ -66,7 +66,7 @@ function SignUp() {
                     <p>OR</p>
                     <br />
 
-                    <Link to="/">Login page</Link>
+                    <Link to="/login">Login page</Link>
                 </center>
             </div>
         </MantineProvider>

@@ -16,13 +16,13 @@ function Login() {
         
         try{
             
-            await axios.post("http://localhost:8000/",{
+            await axios.post("http://localhost:8000/login",{
                 email,
                 password
             })
             .then(res=>{
                 if(res.data==="exist"){
-                    history("/home")
+                    history("/chatbot")
                 }
                 else if(res.data==="notexist"){
                     alert("user have not sign up")

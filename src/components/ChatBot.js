@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import ChatBot from "react-simple-chatbot";
 import { Segment } from "semantic-ui-react";
 import styled from 'styled-components';
+import axios from 'axios';
 
 const ChatBotWrapper = styled.div`
     position: fixed;
@@ -11,11 +12,13 @@ const ChatBotWrapper = styled.div`
 `;
 
 function App() {
+    const [name, setName] = useState("");
     const [sourceLocation, setSourceLocation] = useState("");
     const [destinationLocation, setDestinationLocation] = useState("");
     const [dateTime, setDateTime] = useState("");
     const [busType, setBusType] = useState("");
     const [seatNumber, setSeatNumber] = useState("");
+    const [issue, setIssue] = useState("");
 
     const locations = [
         'Mahatma Gandhi Bus Station (MGBS)', 'Jubilee Bus Station (JBS)', 'Koti Women\'s College Bus Stop', 'Dilsukhnagar Bus Stop',
@@ -37,28 +40,36 @@ function App() {
         {
             id: "Great",
             message: 'Hello, Welcome to our Website. Please enter your name.',
-            trigger: 'waiting1',
+            trigger: 'NameInput',
         },
         {
-            id: "waiting1",
+            id: "NameInput",
             user: true,
-            trigger: 'Name',
+            trigger: 'SetName',
         },
         {
-            id: "Name",
-            message: 'Please select your issue',
+            id: "SetName",
+            message: 'Hi {previousValue}, please select your issue.',
             trigger: 'issueOptions',
+            validator: (value) => {
+                setName(value.trim());
+                return true;
+            }
         },
         {
             id: "issueOptions",
             options: [
                 { value: "Booking", label: "Booking", trigger: "Source" },
-                { value: "Cancellation", label: "Cancellation", trigger: "Cancellation" },
+                { value: "Cancellation", label: "Cancellation", trigger: "CancellationConfirmation" },
             ],
+            validator: (value) => {
+                setIssue(value);
+                return true;
+            }
         },
         {
             id: "Source",
-            message: 'Please select your source',
+            message: 'Please select your source location.',
             trigger: 'SourceOptions',
         },
         {
@@ -71,7 +82,7 @@ function App() {
             trigger: 'Destination',
             validator: (value) => {
                 if (!locations.includes(value.trim())) {
-                    return 'Please select a valid source';
+                    return 'Please select a valid source location.';
                 }
                 setSourceLocation(value.trim());
                 return true;
@@ -79,7 +90,7 @@ function App() {
         },
         {
             id: "Destination",
-            message: 'Please select your destination',
+            message: 'Please select your destination location.',
             trigger: 'DestinationOptions',
         },
         {
@@ -92,7 +103,7 @@ function App() {
             trigger: 'Date',
             validator: (value) => {
                 if (!locations.includes(value.trim())) {
-                    return 'Please select a valid destination';
+                    return 'Please select a valid destination location.';
                 }
                 setDestinationLocation(value.trim());
                 return true;
@@ -100,7 +111,7 @@ function App() {
         },
         {
             id: "Date",
-            message: 'Please enter your travel date (dd/mm/yyyy)',
+            message: 'Please enter your travel date (dd/mm/yyyy).',
             trigger: 'DateInput',
         },
         {
@@ -110,7 +121,7 @@ function App() {
             validator: (value) => {
                 const datePattern = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
                 if (!datePattern.test(value.trim())) {
-                    return 'Please enter a valid date in dd/mm/yyyy format';
+                    return 'Please enter a valid date in dd/mm/yyyy format.';
                 }
                 setDateTime(value.trim());
                 return true;
@@ -118,7 +129,7 @@ function App() {
         },
         {
             id: "BusType",
-            message: 'Please select your bus type/class (e.g., AC, Non-AC, Sleeper, Seater)',
+            message: 'Please select your bus type/class (e.g., AC, Non-AC, Sleeper, Seater).',
             trigger: 'BusTypeInput',
         },
         {
@@ -132,33 +143,79 @@ function App() {
         },
         {
             id: "SeatNumber",
-            message: 'Please enter your preferred seat number',
+            message: 'Please enter your preferred seat number.',
             trigger: 'SeatNumberInput',
         },
         {
             id: "SeatNumberInput",
             user: true,
-            trigger: 'Booking',
+            trigger: 'SubmitForm',
             validator: (value) => {
                 const seatNum = Number(value.trim());
                 if (!Number.isInteger(seatNum) || seatNum <= 0) {
-                    return 'Please enter a valid seat number';
+                    return 'Please enter a valid seat number.';
                 }
                 setSeatNumber(seatNum);
                 return true;
             }
         },
         {
-            id: "Booking",
+            id: "SubmitForm",
             message: 'Thanks for providing the details. Your booking has been confirmed.',
-            end: true,
+            trigger: 'EndMessage',
+            delay: 1000,
         },
         {
-            id: "Cancellation",
+            id: "CancellationConfirmation",
+            message: 'Are you sure you want to cancel the booking?',
+            trigger: 'CancellationOptions',
+        },
+        {
+            id: "CancellationOptions",
+            options: [
+                { value: "Yes", label: "Yes", trigger: "ProcessCancellation" },
+                { value: "No", label: "No", trigger: "EndMessage" },
+            ],
+        },
+        {
+            id: "ProcessCancellation",
             message: 'Your cancellation request has been processed.',
+            trigger: 'EndMessage',
+        },
+        {
+            id: "EndMessage",
+            message: 'We have received your request.',
             end: true,
+            trigger: () => {
+                handleSubmit(); // Call the function to submit data
+                return 'end-message';
+            }
         }
     ];
+
+    const handleSubmit = async () => {
+        try {
+            if (issue === "Booking") {
+                // Assuming your backend endpoint is http://localhost:8000/chatbot
+                await axios.post("http://localhost:8000/chatbot", {
+                    name,
+                    sourceLocation,
+                    destinationLocation,
+                    dateTime,
+                    busType,
+                    seatNumber,
+                    issue,
+                });
+            } else if (issue === "Cancellation") {
+                await axios.post("http://localhost:8000/chatbot", {
+                    name,
+                    issue,
+                });
+            }
+        } catch (error) {
+            console.error('Error submitting form:', error);
+        }
+    };
 
     return (
         <ChatBotWrapper>
@@ -166,9 +223,6 @@ function App() {
                 <ChatBot
                     steps={steps}
                     userDelay={500}
-                    handleEnd={({ steps, values }) => {
-                        console.log("Chat ended with the following steps and values:", steps, values);
-                    }}
                 />
             </Segment>
         </ChatBotWrapper>
