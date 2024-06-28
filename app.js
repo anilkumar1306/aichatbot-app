@@ -52,19 +52,19 @@ app.post("/signup", async (req, res) => {
 });
 
 app.post("/chatbot", async (req, res) => {
-  const { name, sourceLocation, destinationLocation, dateTime, busType, seatNumber, issue } = req.body;
+  const { name, sourceLocation, destinationLocation, travelDate, busType, seats, optionValue } = req.body;
 
   const data = {
     name,
     sourceLocation,
     destinationLocation,
-    dateTime,
+    travelDate,
     busType,
-    seatNumber,
+    seats,
   };
 
   try {
-    if (issue === "Booking") {
+    if (optionValue === "Booking") {
       const check = await bookingend.findOne({ name });
 
       if (check) {
@@ -73,7 +73,7 @@ app.post("/chatbot", async (req, res) => {
         await bookingend.insertMany([data]);
         res.json("not exist");
       }
-    } else if (issue === "Cancellation") {
+    } else if (optionValue === "Cancellation") {
       const result = await bookingend.deleteOne({ name });
 
       if (result.deletedCount > 0) {

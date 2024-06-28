@@ -1,232 +1,251 @@
-import React, { useState } from "react";
-import ChatBot from "react-simple-chatbot";
-import { Segment } from "semantic-ui-react";
-import styled from 'styled-components';
+// src/App.js
+import React, { useState, useEffect } from 'react';
+import './App.css';
 import axios from 'axios';
 
-const ChatBotWrapper = styled.div`
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    z-index: 1000;
-`;
+const App = () => {
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const [stage, setStage] = useState(''); // Track the stage of conversation
+  const [name, setName] = useState('');
+  const [sourceLocation, setSourceLocation] = useState('');
+  const [destinationLocation, setDestinationLocation] = useState('');
+  const [travelDate, setTravelDate] = useState('');
+  const [busType, setBusType] = useState('');
+  const [seats, setSeats] = useState(0);
+  const [optionValue, setoptionValue] = useState(''); // Track whether the user picked booking or cancellation
 
-function App() {
-    const [name, setName] = useState("");
-    const [sourceLocation, setSourceLocation] = useState("");
-    const [destinationLocation, setDestinationLocation] = useState("");
-    const [dateTime, setDateTime] = useState("");
-    const [busType, setBusType] = useState("");
-    const [seatNumber, setSeatNumber] = useState("");
-    const [issue, setIssue] = useState("");
+  const locations = [
+    'Shamshabad', 'Patancheru', 'LB Nagar', 'Aloor', 'Choutuppal', 'Narsampet',
+    'Peddapalli', 'Armoor', 'Sathupalli', 'Balkonda', 'Medchal', 'Chennur', 'Luxettipet'
+  ];
 
-    const locations = [
-        'Mahatma Gandhi Bus Station (MGBS)', 'Jubilee Bus Station (JBS)', 'Koti Women\'s College Bus Stop', 'Dilsukhnagar Bus Stop',
-        'Ameerpet Bus Stop', 'Mehdipatnam Bus Stop', 'Uppal Bus Stop', 'Kazipet Bus Stop', 'Hanamkonda Bus Stop',
-        'Warangal Bus Stand', 'Nizamabad Bus Stand', 'Khammam Bus Stand', 'Karimnagar Bus Stand', 'Nalgonda Bus Stand',
-        'Adilabad Bus Stand', 'Mahbubnagar Bus Stand', 'Siddipet Bus Stand', 'Bhongir Bus Stand', 'Mancherial Bus Stand',
-        'Jagtial Bus Stand', 'Sircilla Bus Stand', 'Kothagudem Bus Stand', 'Kamareddy Bus Stand', 'Vemulawada Bus Stand',
-        'Huzurabad Bus Stand', 'Banswada Bus Stand', 'Miryalaguda Bus Stand', 'Tandur Bus Stand', 'Nagarkurnool Bus Stand',
-        'Wanaparthy Bus Stand', 'Gadwal Bus Stand', 'Sangareddy Bus Stand', 'Nirmal Bus Stand', 'Jangaon Bus Stand',
-        'Zaheerabad Bus Stand', 'Bhadrachalam Bus Stand', 'Suryapet Bus Stand', 'Vikarabad Bus Stand', 'Medak Bus Stand',
-        'Shamshabad', 'Patancheru', 'LB Nagar', 'Aloor', 'Choutuppal', 'Narsampet', 'Peddapalli', 'Armoor', 'Sathupalli',
-        'Balkonda', 'Medchal', 'Chennur', 'Luxettipet'
-    ];
+  const busTypes = [
+    'AC', 'Non-AC', 'Sleeper', 'Seater'
+  ];
 
-    const sourceOptions = locations.map(location => ({ value: location, label: location, trigger: "SetSource" }));
-    const destinationOptions = locations.filter(location => location !== sourceLocation).map(location => ({ value: location, label: location, trigger: "SetDestination" }));
+  useEffect(() => {
+    // Greet the user when the component mounts
+    greetUser();
+  }, []);
 
-    const steps = [
-        {
-            id: "Great",
-            message: 'Hello, Welcome to our Website. Please enter your name.',
-            trigger: 'NameInput',
-        },
-        {
-            id: "NameInput",
-            user: true,
-            trigger: 'SetName',
-        },
-        {
-            id: "SetName",
-            message: 'Hi {previousValue}, please select your issue.',
-            trigger: 'issueOptions',
-            validator: (value) => {
-                setName(value.trim());
-                return true;
-            }
-        },
-        {
-            id: "issueOptions",
+  const greetUser = () => {
+    const greeting = "Hello, Welcome to our Website. Please enter your name.";
+    setMessages([{ sender: 'bot', text: greeting }]);
+    setStage('greeted');
+  };
+
+  const handleSend = () => {
+    if (input.trim()) {
+      setMessages([...messages, { sender: 'user', text: input }]);
+      const currentInput = input;
+      setInput('');
+      generateResponse(currentInput);
+    }
+  };
+
+  const generateResponse = (userInput) => {
+    let botResponse = '';
+    if (stage === 'greeted') {
+      // After greeting, ask how to assist
+      setName(userInput);
+      botResponse = `Nice to meet you, ${userInput}. How can I assist you today?`;
+      setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: botResponse }]);
+      setStage('options');
+      setTimeout(() => {
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { sender: 'bot', text: 'Please choose an option:' },
+          {
+            sender: 'bot',
+            text: '',
             options: [
-                { value: "Booking", label: "Booking", trigger: "Source" },
-                { value: "Cancellation", label: "Cancellation", trigger: "CancellationConfirmation" },
-            ],
-            validator: (value) => {
-                setIssue(value);
-                return true;
-            }
-        },
+              { label: 'Booking', value: 'booking' },
+              { label: 'Cancellation', value: 'cancellation' }
+            ]
+          }
+        ]);
+      }, 1000);
+    } else if (stage === 'selectingSource') {
+      setSourceLocation(userInput);
+      botResponse = 'Please select your destination location.';
+      const filteredLocations = locations.filter(location => location !== userInput);
+      setMessages((prevMessages) => [
+        ...prevMessages,
+        { sender: 'bot', text: botResponse },
         {
-            id: "Source",
-            message: 'Please select your source location.',
-            trigger: 'SourceOptions',
-        },
-        {
-            id: "SourceOptions",
-            options: sourceOptions,
-        },
-        {
-            id: "SetSource",
-            user: true,
-            trigger: 'Destination',
-            validator: (value) => {
-                if (!locations.includes(value.trim())) {
-                    return 'Please select a valid source location.';
-                }
-                setSourceLocation(value.trim());
-                return true;
-            }
-        },
-        {
-            id: "Destination",
-            message: 'Please select your destination location.',
-            trigger: 'DestinationOptions',
-        },
-        {
-            id: "DestinationOptions",
-            options: destinationOptions,
-        },
-        {
-            id: "SetDestination",
-            user: true,
-            trigger: 'Date',
-            validator: (value) => {
-                if (!locations.includes(value.trim())) {
-                    return 'Please select a valid destination location.';
-                }
-                setDestinationLocation(value.trim());
-                return true;
-            }
-        },
-        {
-            id: "Date",
-            message: 'Please enter your travel date (dd/mm/yyyy).',
-            trigger: 'DateInput',
-        },
-        {
-            id: "DateInput",
-            user: true,
-            trigger: 'BusType',
-            validator: (value) => {
-                const datePattern = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
-                if (!datePattern.test(value.trim())) {
-                    return 'Please enter a valid date in dd/mm/yyyy format.';
-                }
-                setDateTime(value.trim());
-                return true;
-            }
-        },
-        {
-            id: "BusType",
-            message: 'Please select your bus type/class (e.g., AC, Non-AC, Sleeper, Seater).',
-            trigger: 'BusTypeInput',
-        },
-        {
-            id: "BusTypeInput",
-            user: true,
-            trigger: 'SeatNumber',
-            validator: (value) => {
-                setBusType(value.trim());
-                return true;
-            }
-        },
-        {
-            id: "SeatNumber",
-            message: 'Please enter your preferred seat number.',
-            trigger: 'SeatNumberInput',
-        },
-        {
-            id: "SeatNumberInput",
-            user: true,
-            trigger: 'SubmitForm',
-            validator: (value) => {
-                const seatNum = Number(value.trim());
-                if (!Number.isInteger(seatNum) || seatNum <= 0) {
-                    return 'Please enter a valid seat number.';
-                }
-                setSeatNumber(seatNum);
-                return true;
-            }
-        },
-        {
-            id: "SubmitForm",
-            message: 'Thanks for providing the details. Your booking has been confirmed.',
-            trigger: 'EndMessage',
-            delay: 1000,
-        },
-        {
-            id: "CancellationConfirmation",
-            message: 'Are you sure you want to cancel the booking?',
-            trigger: 'CancellationOptions',
-        },
-        {
-            id: "CancellationOptions",
+          sender: 'bot',
+          text: '',
+          options: filteredLocations.map(location => ({ label: location, value: location }))
+        }
+      ]);
+      setStage('selectingDestination');
+    } else if (stage === 'selectingDestination') {
+      setDestinationLocation(userInput);
+      botResponse = 'Please enter your travel date (dd/mm/yyyy).';
+      setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: botResponse }]);
+      setStage('enteringDate');
+    } else if (stage === 'enteringDate') {
+      if (validateDate(userInput)) {
+        setTravelDate(userInput);
+        botResponse = `Your travel date is set to ${userInput}. Please select your bus type/class (e.g., AC, Non-AC, Sleeper, Seater).`;
+        setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: botResponse }]);
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          {
+            sender: 'bot',
+            text: '',
+            options: busTypes.map(type => ({ label: type, value: type }))
+          }
+        ]);
+        setStage('selectingBusType');
+      } else {
+        botResponse = 'Please enter a valid date (dd/mm/yyyy).';
+        setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: botResponse }]);
+      }
+    } else if (stage === 'selectingBusType') {
+      setBusType(userInput);
+      botResponse = `You have selected ${userInput} class. Please enter how many seats you want to book.`;
+      setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: botResponse }]);
+      setStage('enteringSeats');
+    } else if (stage === 'enteringSeats') {
+      const seats = parseInt(userInput, 10);
+      if (Number.isInteger(seats) && seats > 0) {
+        setSeats(seats);
+        botResponse = `Thanks for providing the details. Your booking has been confirmed. You have booked ${seats} seats in ${busType} class from ${sourceLocation} to ${destinationLocation} on ${travelDate}.`;
+        setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: botResponse }]);
+        setStage('completed');
+        setoptionValue('Booking');
+        handleSubmit();
+      } else {
+        botResponse = 'Please enter a valid number of seats.';
+        setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: botResponse }]);
+      }
+    } else if (stage === 'cancellationConfirmation') {
+      if (userInput.toLowerCase() === 'yes') {
+        botResponse = 'Your booking has been cancelled.';
+        setoptionValue('Cancellation');
+        handleSubmit();
+      } else {
+        botResponse = 'Cancellation aborted.';
+      }
+      setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: botResponse }]);
+      setStage('completed');
+    } else {
+      botResponse = `You said: ${userInput}`;
+      setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: botResponse }]);
+    }
+  };
+
+  const handleOptionClick = (optionValue) => {
+    if (stage === 'options') {
+      setMessages([...messages, { sender: 'user', text: optionValue }]);
+      if (optionValue === 'booking') {
+        setMessages([
+          ...messages,
+          { sender: 'bot', text: 'You clicked on Booking! Please select a valid source location:' },
+          {
+            sender: 'bot',
+            text: '',
+            options: locations.map(location => ({ label: location, value: location }))
+          }
+        ]);
+        setStage('selectingSource');
+      } else if (optionValue === 'cancellation') {
+        setMessages([
+          ...messages,
+          { sender: 'bot', text: 'Are you sure you want to cancel the booking?' },
+          {
+            sender: 'bot',
+            text: '',
             options: [
-                { value: "Yes", label: "Yes", trigger: "ProcessCancellation" },
-                { value: "No", label: "No", trigger: "EndMessage" },
-            ],
-        },
-        {
-            id: "ProcessCancellation",
-            message: 'Your cancellation request has been processed.',
-            trigger: 'EndMessage',
-        },
-        {
-            id: "EndMessage",
-            message: 'We have received your request.',
-            end: true,
-            trigger: () => {
-                handleSubmit(); // Call the function to submit data
-                return 'end-message';
-            }
-        }
-    ];
+              { label: 'Yes', value: 'yes' },
+              { label: 'No', value: 'no' }
+            ]
+          }
+        ]);
+        setStage('cancellationConfirmation');
+      }
+    } else if (stage === 'selectingSource') {
+      generateResponse(optionValue);
+    } else if (stage === 'selectingDestination') {
+      generateResponse(optionValue);
+    } else if (stage === 'selectingBusType') {
+      generateResponse(optionValue);
+    } else if (stage === 'cancellationConfirmation') {
+      generateResponse(optionValue);
+    }
+  };
 
-    const handleSubmit = async () => {
-        try {
-            if (issue === "Booking") {
-                // Assuming your backend endpoint is http://localhost:8000/chatbot
-                await axios.post("http://localhost:8000/chatbot", {
-                    name,
-                    sourceLocation,
-                    destinationLocation,
-                    dateTime,
-                    busType,
-                    seatNumber,
-                    issue,
-                });
-            } else if (issue === "Cancellation") {
-                await axios.post("http://localhost:8000/chatbot", {
-                    name,
-                    issue,
-                });
-            }
-        } catch (error) {
-            console.error('Error submitting form:', error);
-        }
-    };
+  const validateDate = (dateStr) => {
+    const datePattern = /^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
+    if (!datePattern.test(dateStr)) {
+      return false;
+    }
+    const [day, month, year] = dateStr.split('/').map(Number);
+    const inputDate = new Date(year, month - 1, day);
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0); // Set to start of day for comparison
+    return inputDate >= currentDate;
+  };
 
-    return (
-        <ChatBotWrapper>
-            <Segment floated="right">
-                <ChatBot
-                    steps={steps}
-                    userDelay={500}
-                />
-            </Segment>
-        </ChatBotWrapper>
-    );
-}
+  const handleSubmit = async () => {
+    try {
+      if (optionValue === 'Booking') {
+        await axios.post("http://localhost:8000/chatbot", {
+          name,
+          sourceLocation,
+          destinationLocation,
+          travelDate,
+          busType,
+          seats,
+          optionValue,
+        });
+      } else if (optionValue === 'Cancellation') {
+        await axios.post("http://localhost:8000/chatbot", {
+          name,
+          optionValue,
+        });
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+    }
+  };
+
+  return (
+    <div className="chatbot">
+      <div className="chat-window">
+        {messages.map((message, index) => (
+          <div key={index} className={`message ${message.sender}`}>
+            {message.text}
+            {message.options && (
+              <div className="options">
+                {message.options.map((option, optionIndex) => (
+                  <button
+                    key={optionIndex}
+                    onClick={() => handleOptionClick(option.value)}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <div className="input-container">
+        <input
+          type="text"
+          placeholder="Type a message..."
+          value={input}
+          style={{width: '92%'}}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+        />
+        <button onClick={handleSend}>Send</button>
+      </div>
+    </div>
+  );
+};
 
 export default App;
