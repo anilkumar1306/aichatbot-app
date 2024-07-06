@@ -1,4 +1,3 @@
-// src/App.js
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import axios from 'axios';
@@ -13,7 +12,7 @@ const App = () => {
   const [travelDate, setTravelDate] = useState('');
   const [busType, setBusType] = useState('');
   const [seats, setSeats] = useState(0);
-  const [optionValue, setoptionValue] = useState(''); // Track whether the user picked booking or cancellation
+  const [optionValue, setOptionValue] = useState(''); // Track whether the user picked booking or cancellation
 
   const locations = [
     'Shamshabad', 'Patancheru', 'LB Nagar', 'Aloor', 'Choutuppal', 'Narsampet',
@@ -112,11 +111,14 @@ const App = () => {
       const seats = parseInt(userInput, 10);
       if (Number.isInteger(seats) && seats > 0) {
         setSeats(seats);
-        botResponse = `Thanks for providing the details. Your booking has been confirmed. You have booked ${seats} seats in ${busType} class from ${sourceLocation} to ${destinationLocation} on ${travelDate}.`;
+        if (optionValue === 'Booking') {
+          botResponse = `Thanks for providing the details. Your booking has been confirmed. You have booked ${seats} seats in ${busType} class from ${sourceLocation} to ${destinationLocation} on ${travelDate}.`;
+        } else if (optionValue === 'Cancellation') {
+          botResponse = `You have requested to cancel your booking.`;
+        }
         setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: botResponse }]);
         setStage('completed');
-        setoptionValue('Booking');
-        handleSubmit();
+        submit();
       } else {
         botResponse = 'Please enter a valid number of seats.';
         setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: botResponse }]);
@@ -124,8 +126,8 @@ const App = () => {
     } else if (stage === 'cancellationConfirmation') {
       if (userInput.toLowerCase() === 'yes') {
         botResponse = 'Your booking has been cancelled.';
-        setoptionValue('Cancellation');
-        handleSubmit();
+        setOptionValue('Cancellation');
+        submit();
       } else {
         botResponse = 'Cancellation aborted.';
       }
@@ -151,6 +153,7 @@ const App = () => {
           }
         ]);
         setStage('selectingSource');
+        setOptionValue('Booking');
       } else if (optionValue === 'cancellation') {
         setMessages([
           ...messages,
@@ -165,6 +168,7 @@ const App = () => {
           }
         ]);
         setStage('cancellationConfirmation');
+        setOptionValue('Cancellation');
       }
     } else if (stage === 'selectingSource') {
       generateResponse(optionValue);
@@ -189,7 +193,7 @@ const App = () => {
     return inputDate >= currentDate;
   };
 
-  const handleSubmit = async () => {
+  async function submit() {
     try {
       if (optionValue === 'Booking') {
         await axios.post("http://localhost:8000/chatbot", {
@@ -201,14 +205,19 @@ const App = () => {
           seats,
           optionValue,
         });
+        alert("Successfully booked the bus tickets!");
       } else if (optionValue === 'Cancellation') {
         await axios.post("http://localhost:8000/chatbot", {
           name,
           optionValue,
         });
+        alert("Successfully cancelled the bus tickets!");
+      } else {
+        alert("An error occurred. Please check your details and try again.");
       }
     } catch (error) {
       console.error('Error submitting form:', error);
+      alert("An error occurred. Please check your details and try again.");
     }
   };
 
@@ -238,7 +247,7 @@ const App = () => {
           type="text"
           placeholder="Type a message..."
           value={input}
-          style={{width: '92%'}}
+          style={{ width: '92%' }}
           onChange={(e) => setInput(e.target.value)}
           onKeyPress={(e) => e.key === 'Enter' && handleSend()}
         />

@@ -38,18 +38,31 @@ const UserDetails = () => {
 
   const generatePDF = () => {
     if (!userData) return;
-
+  
     const ticketContent = document.getElementById('ticket-content');
-
+  
     html2canvas(ticketContent).then((canvas) => {
       const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4'); // Portrait, millimeters, A4 size
-
+  
       const width = pdf.internal.pageSize.getWidth();
       const height = pdf.internal.pageSize.getHeight();
-
-      pdf.addImage(imgData, 'PNG', 10, 10, width - 20, height - 20);
-
+  
+      // Calculate the aspect ratio of the captured canvas
+      const ratio = canvas.width / canvas.height;
+  
+      // Determine dimensions based on aspect ratio and available space in PDF
+      let imgWidth = width - 20;
+      let imgHeight = imgWidth / ratio;
+  
+      // Check if the image height exceeds the height of the page
+      if (imgHeight > height - 20) {
+        imgHeight = height - 20;
+        imgWidth = imgHeight * ratio;
+      }
+  
+      pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
+  
       // Add additional text "Happy Journey" and "TSRTC" at the end of the ticket
       pdf.setFontSize(14);
       pdf.setTextColor(44, 62, 80); // Dark blue-gray
@@ -57,7 +70,7 @@ const UserDetails = () => {
       pdf.setFontSize(12);
       pdf.setTextColor(192, 57, 43); // TSRTC red
       pdf.text('TSRTC', width / 2, height - 20, 'center');
-
+  
       pdf.save(`${userData.name}_ticket.pdf`);
     });
   };

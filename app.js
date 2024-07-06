@@ -70,39 +70,24 @@ app.post("/", async (req, res) => {
   }
 });
 
-app.post("/chatbot", async (req, res) => {
+app.post('/chatbot', async (req, res) => {
   const { name, sourceLocation, destinationLocation, travelDate, busType, seats, optionValue } = req.body;
 
   const data = { name, sourceLocation, destinationLocation, travelDate, busType, seats };
 
   try {
-    if (optionValue === "Booking") {
-      const check = await bookingend.findOne({ name });
-
-      if (!check) {
-        // If no entry with the same name exists, handle booking
-        await bookingend.insertMany(data);
-        res.json("Successfully booked the bus tickets!");
-      } else {
-        res.status(400).json("Booking failed: Ticket already booked for this name.");
-      }
-    } else if (optionValue === "Cancellation") {
-      const check = await bookingend.findOne({ name });
-
-      if (check) {
-        // If entry with the same name exists, handle cancellation
-        await bookingend.deleteOne({ name });
-        res.json("Tickets cancelled");
-      } else {
-        res.status(400).json("Cancellation failed: No booking found for this name.");
-      }
+    if (optionValue === 'Booking') {
+      await bookingend.insertMany([data]);
+      res.json({ message: "Booking successful" });
+    } else if (optionValue === 'Cancellation') {
+      await bookingend.deleteMany({ name }); // Adjust this as per your deletion criteria
+      res.json({ message: "Cancellation successful" });
     } else {
-      res.status(400).json("Invalid optionValue provided.");
+      res.status(400).json({ message: "Invalid optionValue" });
     }
   } catch (e) {
-    // Handle any errors that occur during MongoDB operations
-    console.error("Error in processing request:", e);
-    res.status(500).json("An error occurred while processing the request.");
+    console.error('Error processing request:', e);
+    res.status(500).json({ message: "Server error" });
   }
 });
 
