@@ -1,7 +1,7 @@
 const express = require("express");
 const mongoose=require("mongoose");
 const app = express();
-const uri="mongodb+srv://root:root@cluster0.9raug0n.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+const uri="mongodb+srv://anil:root@cluster0.gd3seox.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 async function connect(){
     try{
         await mongoose.connect(uri);

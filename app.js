@@ -51,41 +51,75 @@ app.post("/signup", async (req, res) => {
   }
 });
 
+app.post("/", async (req, res) => {
+  const { name, sourceLocation, destinationLocation, travelDate, busType, seats } = req.body;
+
+  const data = { name, sourceLocation, destinationLocation, travelDate, busType, seats };
+
+  try {
+    const check = await bookingend.findOne({ name });
+
+    if (check) {
+      res.json("exist");
+    } else {
+      await bookingend.insertMany([data]);
+      res.json("not exist");
+    }
+  } catch (e) {
+    res.json("not exist");
+  }
+});
+
 app.post("/chatbot", async (req, res) => {
   const { name, sourceLocation, destinationLocation, travelDate, busType, seats, optionValue } = req.body;
 
-  const data = {
-    name,
-    sourceLocation,
-    destinationLocation,
-    travelDate,
-    busType,
-    seats,
-  };
+  const data = { name, sourceLocation, destinationLocation, travelDate, busType, seats };
 
   try {
     if (optionValue === "Booking") {
       const check = await bookingend.findOne({ name });
 
-      if (check) {
-        res.json("exist");
+      if (!check) {
+        // If no entry with the same name exists, handle booking
+        await bookingend.insertMany(data);
+        res.json("Successfully booked the bus tickets!");
       } else {
-        await bookingend.insertMany([data]);
-        res.json("not exist");
+        res.status(400).json("Booking failed: Ticket already booked for this name.");
       }
     } else if (optionValue === "Cancellation") {
-      const result = await bookingend.deleteOne({ name });
+      const check = await bookingend.findOne({ name });
 
-      if (result.deletedCount > 0) {
-        res.json("cancelled");
+      if (check) {
+        // If entry with the same name exists, handle cancellation
+        await bookingend.deleteOne({ name });
+        res.json("Tickets cancelled");
       } else {
-        res.json("not exist");
+        res.status(400).json("Cancellation failed: No booking found for this name.");
       }
     } else {
-      res.status(400).json("Invalid issue type");
+      res.status(400).json("Invalid optionValue provided.");
     }
   } catch (e) {
-    res.json("not exist");
+    // Handle any errors that occur during MongoDB operations
+    console.error("Error in processing request:", e);
+    res.status(500).json("An error occurred while processing the request.");
+  }
+});
+
+app.get('/download', async (req, res) => {
+  try {
+    const name = req.query.name;
+    const userData = await bookingend.findOne({ name });
+
+    if (userData) {
+      const { name, sourceLocation, destinationLocation, travelDate, busType, seats } = userData;
+      res.json({ name, sourceLocation, destinationLocation, travelDate, busType, seats });
+    } else {
+      res.status(404).json({ message: 'name not found' });
+    }
+  } catch (err) {
+    console.error('Error fetching user details:', err);
+    res.status(500).json({ message: 'Server Error' });
   }
 });
 
