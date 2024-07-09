@@ -18,25 +18,32 @@ const newSchema = new mongoose.Schema({
     name:{
         type: String,
         required: true
-    },
-    sourceLocation:{
+    }, sourceLocation:{
         type: String,
         required: true
-    }, 
-    destinationLocation:{
+    }, destinationLocation:{
         type: String,
         required: true
-    }, 
-    travelDate:{
+    }, travelDate:{
         type: String,
         required: true
-    }, 
-    busType:{
+    }, busType:{
         type: String,
         required: true
-    }, 
-    seats:{
+    }, seats:{
         type: Number,
+        required: true
+    }, totalPrice:{
+        type: Number,
+        required: true
+    }, transactionHash:{
+        type: String,
+        required: true
+    }, publicAddress:{
+        type: String,
+        required: true
+    }, privateAddress:{
+        type: String,
         required: true
     }
 })

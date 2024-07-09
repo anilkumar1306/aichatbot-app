@@ -95,6 +95,9 @@ const UserDetails = () => {
           <p><strong>Travel Date:</strong> {userData.travelDate}</p>
           <p><strong>Bus Type:</strong> {userData.busType}</p>
           <p><strong>Seats:</strong> {userData.seats}</p>
+          <p><strong>Total Price:</strong> {userData.totalPrice}</p>
+          <p><strong>Transaction Hash:</strong> {userData.transactionHash}</p>
+          <p><strong>Public Address:</strong> {userData.publicAddress}</p>
         </div>
       )}
 

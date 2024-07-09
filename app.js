@@ -52,9 +52,20 @@ app.post("/signup", async (req, res) => {
 });
 
 app.post("/", async (req, res) => {
-  const { name, sourceLocation, destinationLocation, travelDate, busType, seats } = req.body;
+  const { name, sourceLocation, destinationLocation, travelDate, busType, seats, totalPrice, transactionHash, publicAddress, privateAddress } = req.body;
 
-  const data = { name, sourceLocation, destinationLocation, travelDate, busType, seats };
+  const newData = {
+    name,
+    sourceLocation,
+    destinationLocation,
+    travelDate,
+    busType,
+    seats,
+    totalPrice,
+    transactionHash,
+    publicAddress,
+    privateAddress
+  };
 
   try {
     const check = await bookingend.findOne({ name });
@@ -62,27 +73,47 @@ app.post("/", async (req, res) => {
     if (check) {
       res.json("exist");
     } else {
-      await bookingend.insertMany([data]);
+      await bookingend.create(newData);
       res.json("not exist");
     }
-  } catch (e) {
-    res.json("not exist");
+  } catch (error) {
+    console.error(error);
+    res.status(500).json("error");
   }
 });
 
 app.post('/chatbot', async (req, res) => {
-  const { name, sourceLocation, destinationLocation, travelDate, busType, seats, optionValue } = req.body;
+  const { name, sourceLocation, destinationLocation, travelDate, busType, seats, totalPrice, transactionHash, publicAddress, privateAddress, optionValue } = req.body;
 
-  const data = { name, sourceLocation, destinationLocation, travelDate, busType, seats };
+  const data = { name, sourceLocation, destinationLocation, travelDate, busType, seats, totalPrice, transactionHash, publicAddress, privateAddress };
 
   try {
     if (optionValue === 'Booking') {
       await bookingend.insertMany([data]);
       res.json({ message: "Booking successful" });
-    } else if (optionValue === 'Cancellation') {
-      await bookingend.deleteMany({ name }); // Adjust this as per your deletion criteria
-      res.json({ message: "Cancellation successful" });
-    } else {
+    }
+    else if (optionValue === 'Cancellation') {
+      await bookingend.deleteMany({ name });
+      res.json({ message: "Booking cancelled" });
+    }
+    else {
+      res.status(400).json({ message: "Invalid optionValue" });
+    }
+  } catch (e) {
+    console.error('Error processing request:', e);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+app.get('/chatbot', async (req, res) => {
+  const { name, totalPrice, optionValue, publicAddress } = req.body;
+  const data = { name, totalPrice, optionValue, publicAddress };
+  try {
+    if (optionValue === 'Cancellation'){
+      await bookingend.deleteMany({ name });
+      res.json({ message: "Booking cancelled" });
+    }
+    else{
       res.status(400).json({ message: "Invalid optionValue" });
     }
   } catch (e) {
@@ -97,8 +128,8 @@ app.get('/download', async (req, res) => {
     const userData = await bookingend.findOne({ name });
 
     if (userData) {
-      const { name, sourceLocation, destinationLocation, travelDate, busType, seats } = userData;
-      res.json({ name, sourceLocation, destinationLocation, travelDate, busType, seats });
+      const { name, sourceLocation, destinationLocation, travelDate, busType, seats, totalPrice, transactionHash, publicAddress, privateAddress } = userData;
+      res.json({ name, sourceLocation, destinationLocation, travelDate, busType, seats, totalPrice, transactionHash, publicAddress, privateAddress });
     } else {
       res.status(404).json({ message: 'name not found' });
     }

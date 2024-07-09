@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './App.css';
 import axios from 'axios';
-import { ethers } from 'ethers';
 
 const App = () => {
   const [messages, setMessages] = useState([]);
@@ -13,13 +12,10 @@ const App = () => {
   const [travelDate, setTravelDate] = useState('');
   const [busType, setBusType] = useState('');
   const [seats, setSeats] = useState(0);
-  const [totalPrice, setTotalPrice] = useState(0); // Track the total price
   const [optionValue, setOptionValue] = useState(''); // Track whether the user picked booking or cancellation
+  const [totalPrice, setTotalPrice] = useState(0); // Track total price
   const [publicAddress, setPublicAddress] = useState('');
   const [privateAddress, setPrivateAddress] = useState('');
-  const [transactionHash, setTransactionHash] = useState('');
-
-  const governmentAddress = '0x66d72892eC09Dd980e0589910fB9E6C0F79F0B43';
 
   const locations = [
     'Shamshabad', 'Patancheru', 'LB Nagar', 'Aloor', 'Choutuppal', 'Narsampet',
@@ -30,7 +26,7 @@ const App = () => {
     'AC', 'Non-AC', 'Sleeper AC', 'Sleeper Non-AC'
   ];
 
-  const busTypePrices = {
+  const prices = {
     'AC': 0.0018,
     'Non-AC': 0.0014,
     'Sleeper AC': 0.0026,
@@ -125,9 +121,10 @@ const App = () => {
       const seats = parseInt(userInput, 10);
       if (Number.isInteger(seats) && seats > 0) {
         setSeats(seats);
-        const totalPrice = busTypePrices[busType] * seats;
+        const pricePerSeat = prices[busType];
+        const totalPrice = pricePerSeat * seats;
         setTotalPrice(totalPrice);
-        botResponse = `Thanks for providing the details. Your booking has been confirmed. You have booked ${seats} seats in ${busType} class from ${sourceLocation} to ${destinationLocation} on ${travelDate}. The total price is ${totalPrice} ETH. Please enter your public address.`;
+        botResponse = `The total price for ${seats} seats in ${busType} class is ${totalPrice} Ethereum Sepolia. Please enter your public address.`;
         setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: botResponse }]);
         setStage('enteringPublicAddress');
       } else {
@@ -136,15 +133,19 @@ const App = () => {
       }
     } else if (stage === 'enteringPublicAddress') {
       setPublicAddress(userInput);
-      botResponse = `Your public address is ${userInput}. Please enter your private address.`;
+      botResponse = 'Please enter your private address.';
       setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: botResponse }]);
       setStage('enteringPrivateAddress');
     } else if (stage === 'enteringPrivateAddress') {
       setPrivateAddress(userInput);
-      botResponse = `Your private address is securely recorded. Please keep it safe.`;
+      if (optionValue === 'Booking') {
+        botResponse = `Thanks for providing the details. Your booking has been confirmed. You have booked ${seats} seats in ${busType} class from ${sourceLocation} to ${destinationLocation} on ${travelDate}. The total price is ${totalPrice} Ethereum Sepolia.`;
+      } else if (optionValue === 'Cancellation') {
+        botResponse = `You have requested to cancel your booking.`;
+      }
       setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: botResponse }]);
       setStage('completed');
-      sendETH();
+      submit();
     } else if (stage === 'cancellationConfirmation') {
       if (userInput.toLowerCase() === 'yes') {
         botResponse = 'Your booking has been cancelled.';
@@ -215,32 +216,6 @@ const App = () => {
     return inputDate >= currentDate;
   };
 
-  const sendETH = async (privateAddress, totalPrice, governmentAddress) => {
-    try {
-      const provider = new ethers.providers.InfuraProvider('sepolia', '427b470c4a084e9f857e777d1261a9dd'); // Your Infura project ID
-      const wallet = new ethers.Wallet(privateAddress, provider);
-      
-      const transaction = await wallet.sendTransaction({
-        to: governmentAddress,
-        value: ethers.utils.parseEther(totalPrice.toString())
-      });
-  
-      await transaction.wait(); // Wait for the transaction to be mined
-  
-      const txResponse = transaction;
-      console.log(`Transaction successful! Transaction hash: ${txResponse.hash}`);
-  
-      setMessages([...messages, { sender: 'bot', text: `Transaction successful! Transaction hash: ${txResponse.hash}` }]);
-      setTransactionHash(txResponse.hash);
-  
-      return txResponse.hash; // Return the transaction hash
-    } catch (error) {
-      console.error('Error sending ETH:', error.message);
-      setMessages([...messages, { sender: 'bot', text: 'Error sending ETH. Please try again.' }]);
-      throw new Error("Transaction failed");
-    }
-  };
-  
   async function submit() {
     try {
       if (optionValue === 'Booking') {
@@ -254,7 +229,6 @@ const App = () => {
           totalPrice,
           publicAddress,
           privateAddress,
-          transactionHash,
           optionValue,
         });
         alert("Successfully booked the bus tickets!");

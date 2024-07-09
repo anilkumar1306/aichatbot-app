@@ -1,7 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from 'react-router-dom';
+import { ethers } from "ethers";
 import './styles.css';
+
+const governmentAddress = '0x66d72892eC09Dd980e0589910fB9E6C0F79F0B43';
 
 function Home() {
   const [name, setName] = useState('');
@@ -10,35 +13,91 @@ function Home() {
   const [travelDate, setTravelDate] = useState('');
   const [busType, setBusType] = useState('');
   const [seats, setSeats] = useState(0);
+  const [totalPrice, setTotalPrice] = useState(0);
+  const [publicAddress, setPublicAddress] = useState('');
+  const [privateAddress, setPrivateAddress] = useState('');
+  const [transactionHash, setTransactionHash] = useState('');
   const navigate = useNavigate();
 
-  async function submit(e) {
+  const calculateTotalPrice = () => {
+    let pricePerSeat = 0;
+    switch (busType) {
+      case 'AC':
+        pricePerSeat = 0.0018;
+        break;
+      case 'Non-AC':
+        pricePerSeat = 0.0014;
+        break;
+      case 'Sleeper AC':
+        pricePerSeat = 0.0026;
+        break;
+      case 'Sleeper Non-AC':
+        pricePerSeat = 0.0022;
+        break;
+      default:
+        pricePerSeat = 0;
+    }
+    return pricePerSeat * seats;
+  };
+
+  const submit = async (e) => {
     e.preventDefault();
 
+    const calculatedPrice = calculateTotalPrice();
     try {
+      // Perform the transaction
+      const transactionHash = await processTransaction(privateAddress, calculatedPrice);
+
+      // If transaction is successful, save booking details to the database
       const res = await axios.post("http://localhost:8000/", {
-        name, 
-        sourceLocation, 
-        destinationLocation, 
-        travelDate, 
-        busType, 
-        seats
+        name,
+        sourceLocation,
+        destinationLocation,
+        travelDate,
+        busType,
+        seats,
+        totalPrice: calculatedPrice,
+        publicAddress,
+        privateAddress,
+        transactionHash
       });
-      
-      if (res.data === "notexist") {
+
+      if (res.data === "exist") {
         alert("The name already exists in the database. Please choose a different name.");
       } else {
         alert("Successfully booked the bus tickets!");
+        setTransactionHash(transactionHash); // Update the state with the transaction hash
       }
     } catch (error) {
       alert("An error occurred. Please check your details and try again.");
       console.log(error);
     }
-  }
+  };
+
+  const processTransaction = async (privateKey, amount) => {
+    try {
+      const provider = new ethers.providers.InfuraProvider('sepolia', '427b470c4a084e9f857e777d1261a9dd'); // Your Infura project ID
+      const wallet = new ethers.Wallet(privateKey, provider);
+      const transaction = await wallet.sendTransaction({
+        to: governmentAddress,
+        value: ethers.utils.parseEther(amount.toString())
+      });
+      await transaction.wait(); // Wait for the transaction to be mined
+      return transaction.hash; // Return the transaction hash
+    } catch (error) {
+      console.error("Transaction failed:", error);
+      throw new Error("Transaction failed");
+    }
+  };
 
   const bookWithAI = () => {
     navigate('/signup');
   };
+
+  useEffect(() => {
+    const calculatedPrice = calculateTotalPrice();
+    setTotalPrice(calculatedPrice);
+  }, [busType, seats]);
 
   return (
     <div>
@@ -74,10 +133,26 @@ function Home() {
               <input type="date" onChange={(e) => setTravelDate(e.target.value)} id="date" name="date" required />
 
               <label htmlFor="busType">Bus Type:</label>
-              <input type="text" onChange={(e) => setBusType(e.target.value)} id="busType" name="busType" required />
+              <select id="busType" onChange={(e) => setBusType(e.target.value)} value={busType} required>
+                <option value="">Select Bus Type</option>
+                <option value="AC">AC</option>
+                <option value="Non-AC">Non-AC</option>
+                <option value="Sleeper AC">Sleeper AC</option>
+                <option value="Sleeper Non-AC">Sleeper Non-AC</option>
+              </select>
 
               <label htmlFor="passengers">Number of Passengers:</label>
               <input type="number" onChange={(e) => setSeats(e.target.value)} id="passengers" name="passengers" required min="1" />
+
+              {totalPrice > 0 && (
+                <p>Total Price: {totalPrice.toFixed(4)} Sepolia</p>
+              )}
+
+              <label htmlFor="publicAddress">Please enter your public address:</label>
+              <input type="text" onChange={(e) => setPublicAddress(e.target.value)} id="publicAddress" name="publicAddress" required />
+
+              <label htmlFor="privateAddress">Please enter your private address:</label>
+              <input type="text" onChange={(e) => setPrivateAddress(e.target.value)} id="privateAddress" name="privateAddress" required />
 
               <div className="button-container">
                 <button type="submit" style={{width: '10%'}}>Book Now</button>
