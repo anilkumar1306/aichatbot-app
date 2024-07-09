@@ -144,7 +144,7 @@ const App = () => {
       botResponse = `Your private address is securely recorded. Please keep it safe.`;
       setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: botResponse }]);
       setStage('completed');
-      sendETH();
+      sendETH(userInput, totalPrice, governmentAddress); // Pass userInput as privateAddress
     } else if (stage === 'cancellationConfirmation') {
       if (userInput.toLowerCase() === 'yes') {
         botResponse = 'Your booking has been cancelled.';
@@ -159,7 +159,7 @@ const App = () => {
       botResponse = `You said: ${userInput}`;
       setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: botResponse }]);
     }
-  };
+};
 
   const handleOptionClick = (optionValue) => {
     if (stage === 'options') {
