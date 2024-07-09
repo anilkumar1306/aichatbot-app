@@ -92,10 +92,6 @@ app.post('/chatbot', async (req, res) => {
       await bookingend.insertMany([data]);
       res.json({ message: "Booking successful" });
     }
-    else if (optionValue === 'Cancellation') {
-      await bookingend.deleteMany({ name });
-      res.json({ message: "Booking cancelled" });
-    }
     else {
       res.status(400).json({ message: "Invalid optionValue" });
     }
@@ -106,14 +102,18 @@ app.post('/chatbot', async (req, res) => {
 });
 
 app.get('/chatbot', async (req, res) => {
-  const { name, totalPrice, optionValue, publicAddress } = req.body;
-  const data = { name, totalPrice, optionValue, publicAddress };
   try {
-    if (optionValue === 'Cancellation'){
-      await bookingend.deleteMany({ name });
-      res.json({ message: "Booking cancelled" });
+    const name = req.query.name;
+    const userData = await bookingend.findOne({ name });
+
+    if (userData) {
+      const { name, totalPrice, publicAddress, optionValue } = userData;
+      res.json({ name, totalPrice, publicAddress, optionValue });
     }
-    else{
+    if (optionValue === 'Cancellation') {
+      const result = await BookingEnd.deleteMany({ name });
+      res.json({ message: "Booking cancelled", result });
+    } else {
       res.status(400).json({ message: "Invalid optionValue" });
     }
   } catch (e) {

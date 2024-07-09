@@ -20,6 +20,7 @@ const App = () => {
   const [transactionHash, setTransactionHash] = useState('');
 
   const governmentAddress = '0x66d72892eC09Dd980e0589910fB9E6C0F79F0B43';
+  const governmentPrivateAddress = 'a56f989b9a483c44f52b815aedba4e77fff1a23b43f67c6e6d9fc8567f222c29';
 
   const locations = [
     'Shamshabad', 'Patancheru', 'LB Nagar', 'Aloor', 'Choutuppal', 'Narsampet',
@@ -148,8 +149,8 @@ const App = () => {
     } else if (stage === 'cancellationConfirmation') {
       if (userInput.toLowerCase() === 'yes') {
         botResponse = 'Your booking has been cancelled.';
-        setOptionValue('Cancellation');
-        submit();
+        setStage('completed');
+        RefundEth(totalPrice, publicAddress);
       } else {
         botResponse = 'Cancellation aborted.';
       }
@@ -232,12 +233,39 @@ const App = () => {
   
       setMessages([...messages, { sender: 'bot', text: `Transaction successful! Transaction hash: ${txResponse.hash}` }]);
       setTransactionHash(txResponse.hash);
+      submit();
   
       return txResponse.hash; // Return the transaction hash
     } catch (error) {
       console.error('Error sending ETH:', error.message);
       setMessages([...messages, { sender: 'bot', text: 'Error sending ETH. Please try again.' }]);
       throw new Error("Transaction failed");
+    }
+  };
+
+  const RefundEth = async (totalPrice, publicAddress) => {
+    console.log('Public address:', publicAddress); // Check if publicAddress is defined
+    try {
+      const provider = new ethers.providers.InfuraProvider('sepolia', '427b470c4a084e9f857e777d1261a9dd'); // Your Infura project ID
+      const wallet = new ethers.Wallet(governmentPrivateAddress, provider); // Provide the private key associated with publicAddress
+  
+      const transaction = await wallet.sendTransaction({
+        to: publicAddress,
+        value: ethers.utils.parseEther(totalPrice.toString())
+      });
+  
+      await transaction.wait(); // Wait for the transaction to be mined
+  
+      const txResponse = transaction;
+      console.log(`Refund successful! Transaction hash: ${txResponse.hash}`);
+  
+      setMessages([...messages, { sender: 'bot', text: `Refunded successfully! Transaction hash: ${txResponse.hash}` }]);
+      submit();
+      return txResponse.hash; // Return the transaction hash
+    } catch (error) {
+      console.error('Error refunding ETH:', error.message);
+      setMessages([...messages, { sender: 'bot', text: 'Error refunding ETH. Please try again.' }]);
+      throw new Error("Refund failed");
     }
   };
   
@@ -259,15 +287,18 @@ const App = () => {
         });
         alert("Successfully booked the bus tickets!");
       } else if (optionValue === 'Cancellation') {
-        await axios.post("http://localhost:8000/chatbot", {
+        await axios.get("http://localhost:8000/chatbot", {
           name,
+          totalPrice,
+          publicAddress,
           optionValue,
         });
         alert("Successfully cancelled the bus tickets!");
       } else {
         alert("An error occurred. Please check your details and try again.");
       }
-    } catch (error) {
+    } 
+    catch (error) {
       console.error('Error submitting form:', error);
       alert("An error occurred. Please check your details and try again.");
     }
