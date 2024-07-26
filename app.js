@@ -91,12 +91,12 @@ app.post('/chatbot', async (req, res) => {
     if (optionValue === 'Booking') {
       await bookingend.insertMany([data]);
       res.json({ message: "Booking successful" });
-    }
-    else {
+    } else {
       res.status(400).json({ message: "Invalid optionValue" });
     }
   } catch (e) {
-    console.error('Error processing request:', e);
+    console.error('Error processing request:', e.message); // Log error message
+    console.error('Full error details:', e); // Log full error details
     res.status(500).json({ message: "Server error" });
   }
 });

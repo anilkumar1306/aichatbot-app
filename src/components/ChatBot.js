@@ -245,41 +245,31 @@ const App = () => {
   };
 
   const ReceiveETH = async (governmentPrivateAddress, totalPrice, publicAddress) => {
-    publicAddress = publicAddress.trim(); // Trim any extra whitespace
-  
-    if (!publicAddress || !ethers.utils.isAddress(publicAddress)) {
-      console.error('Invalid Ethereum address:', publicAddress);
-      setMessages([...messages, { sender: 'bot', text: 'Invalid Ethereum address. Please check and try again.' }]);
-      return;
-    }
-  
     try {
-      const provider = new ethers.providers.InfuraProvider('sepolia', 'YOUR_INFURA_PROJECT_ID'); // Replace with your Infura project ID
+      const provider = new ethers.providers.InfuraProvider('sepolia', '427b470c4a084e9f857e777d1261a9dd'); // Your Infura project ID
       const wallet = new ethers.Wallet(governmentPrivateAddress, provider);
       
-      const transaction = {
-        to: publicAddress, // Ensure this is a valid Ethereum address
+      const transaction = await wallet.sendTransaction({
+        to: publicAddress,
         value: ethers.utils.parseEther(totalPrice.toString())
-      };
+      });
   
-      console.log('Transaction details:', transaction);
+      await transaction.wait(); // Wait for the transaction to be mined
   
-      const txResponse = await wallet.sendTransaction(transaction);
-      await txResponse.wait(); // Wait for the transaction to be mined
-  
+      const txResponse = transaction;
       console.log(`Transaction successful! Transaction hash: ${txResponse.hash}`);
+  
       setMessages([...messages, { sender: 'bot', text: `Transaction successful! Transaction hash: ${txResponse.hash}` }]);
       setTransactionHash(txResponse.hash);
       Cancellation();
-      return txResponse.hash; // Return the transaction hash
   
+      return txResponse.hash; // Return the transaction hash
     } catch (error) {
       console.error('Error sending ETH:', error.message);
       setMessages([...messages, { sender: 'bot', text: 'Error sending ETH. Please try again.' }]);
       throw new Error("Transaction failed");
     }
-  };
-  
+  }
   
   async function submit() {
     try {
@@ -307,32 +297,44 @@ const App = () => {
     }
   };
 
-  const Cancelled = async () => {
+  async function Cancelled() {
     try {
       if (optionValue === 'Cancellation') {
         const response = await axios.get("http://localhost:8000/chatbot", {
-          params: {
-            name,
-            totalPrice,
-            publicAddress
-          }
+          params: { name }
         });
-        console.log('Cancellation details:', response.data);
   
-        setMessages(prevMessages => [
-          ...prevMessages,
-          { sender: 'bot', text: `Cancellation details: Name - ${name}, Total Price - ${totalPrice}, Public Address - ${publicAddress}` }
-        ]);
-        ReceiveETH(governmentPrivateAddress, totalPrice, publicAddress);
-        alert("Successfully cancelled the bus tickets!");
+        if (response.data) {
+          const { totalPrice, publicAddress } = response.data;
+  
+          console.log('Fetched Cancellation details:');
+          console.log('Name:', name);
+          console.log('Total Price:', totalPrice);
+          console.log('Public Address:', publicAddress);
+  
+          setTotalPrice(totalPrice);
+          setPublicAddress(publicAddress);
+  
+          // Displaying fetched data in the chat interface
+          setMessages(prevMessages => [
+            ...prevMessages,
+            { sender: 'bot', text: `Cancellation details: Name - ${name}, Total Price - ${totalPrice}, Public Address - ${publicAddress}, Option Value - ${optionValue}` }
+          ]);
+  
+          await ReceiveETH(governmentPrivateAddress, totalPrice, publicAddress);
+          alert("Successfully cancelled the bus tickets!");
+        } else {
+          alert("Name not found. Please check your details and try again.");
+        }
       } else {
         alert("An error occurred. Please check your details and try again.");
       }
     } catch (error) {
-      console.error('Error submitting form:', error);
+      console.error('Error fetching cancellation details:', error);
       alert("An error occurred. Please check your details and try again.");
     }
-  }  
+  }
+  
 
   async function Cancellation(){
     try {
