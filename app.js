@@ -103,24 +103,36 @@ app.post('/chatbot', async (req, res) => {
 
 app.get('/chatbot', async (req, res) => {
   try {
-    const name = req.query.name;
+    const { name } = req.query; // Destructure `name` from query parameters
+    console.log('Fetching user details for name:', name);
+
     const userData = await bookingend.findOne({ name });
 
     if (userData) {
-      const { name, totalPrice, publicAddress, optionValue } = userData;
-      res.json({ name, totalPrice, publicAddress, optionValue });
-    }
-    if (optionValue === 'Cancellation') {
-      const result = await BookingEnd.deleteMany({ name });
-      res.json({ message: "Booking cancelled", result });
+      const { name, totalPrice, publicAddress } = userData;
+      res.json({ name, totalPrice, publicAddress });
     } else {
-      res.status(400).json({ message: "Invalid optionValue" });
+      res.status(404).json({ message: 'Name not found' });
     }
-  } catch (e) {
-    console.error('Error processing request:', e);
-    res.status(500).json({ message: "Server error" });
+  } catch (err) {
+    console.error('Error fetching user details:', err);
+    res.status(500).json({ message: 'Server Error' });
   }
 });
+
+
+app.post('/cancel', async (req, res) => {
+  const { name } = req.body;
+
+  try {
+    const userData = await bookingend.deleteOne({ name });
+    res.json(userData);
+  } catch (e) {
+    console.error('Error cancelling booking:', e);
+    res.status(500).json({ message: 'Server Error' });
+  }
+});
+
 
 app.get('/download', async (req, res) => {
   try {

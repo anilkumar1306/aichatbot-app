@@ -150,7 +150,8 @@ const App = () => {
       if (userInput.toLowerCase() === 'yes') {
         botResponse = 'Your booking has been cancelled.';
         setStage('completed');
-        RefundEth(totalPrice, publicAddress);
+        setOptionValue('Cancellation');
+        Cancelled();
       } else {
         botResponse = 'Cancellation aborted.';
       }
@@ -243,12 +244,11 @@ const App = () => {
     }
   };
 
-  const RefundEth = async (totalPrice, publicAddress) => {
-    console.log('Public address:', publicAddress); // Check if publicAddress is defined
+  const ReceiveETH = async (governmentPrivateAddress, totalPrice, publicAddress) => {
     try {
       const provider = new ethers.providers.InfuraProvider('sepolia', '427b470c4a084e9f857e777d1261a9dd'); // Your Infura project ID
-      const wallet = new ethers.Wallet(governmentPrivateAddress, provider); // Provide the private key associated with publicAddress
-  
+      const wallet = new ethers.Wallet(governmentPrivateAddress, provider);
+      
       const transaction = await wallet.sendTransaction({
         to: publicAddress,
         value: ethers.utils.parseEther(totalPrice.toString())
@@ -257,17 +257,19 @@ const App = () => {
       await transaction.wait(); // Wait for the transaction to be mined
   
       const txResponse = transaction;
-      console.log(`Refund successful! Transaction hash: ${txResponse.hash}`);
+      console.log(`Transaction successful! Transaction hash: ${txResponse.hash}`);
   
-      setMessages([...messages, { sender: 'bot', text: `Refunded successfully! Transaction hash: ${txResponse.hash}` }]);
-      submit();
+      setMessages([...messages, { sender: 'bot', text: `Transaction successful! Transaction hash: ${txResponse.hash}` }]);
+      setTransactionHash(txResponse.hash);
+      Cancellation();
+  
       return txResponse.hash; // Return the transaction hash
     } catch (error) {
-      console.error('Error refunding ETH:', error.message);
-      setMessages([...messages, { sender: 'bot', text: 'Error refunding ETH. Please try again.' }]);
-      throw new Error("Refund failed");
+      console.error('Error sending ETH:', error.message);
+      setMessages([...messages, { sender: 'bot', text: 'Error sending ETH. Please try again.' }]);
+      throw new Error("Transaction failed");
     }
-  };
+  }
   
   async function submit() {
     try {
@@ -286,23 +288,64 @@ const App = () => {
           optionValue,
         });
         alert("Successfully booked the bus tickets!");
-      } else if (optionValue === 'Cancellation') {
-        await axios.get("http://localhost:8000/chatbot", {
-          name,
-          totalPrice,
-          publicAddress,
-          optionValue,
-        });
-        alert("Successfully cancelled the bus tickets!");
       } else {
         alert("An error occurred. Please check your details and try again.");
       }
-    } 
-    catch (error) {
+    } catch (error) {
       console.error('Error submitting form:', error);
       alert("An error occurred. Please check your details and try again.");
     }
   };
+
+  async function Cancelled(){
+    try {
+        if (optionValue === 'Cancellation') {
+        await axios.get("http://localhost:8000/chatbot", {
+          params: {
+            name,
+            totalPrice,
+            publicAddress
+          }
+        });
+        console.log('Cancellation details:');
+        console.log('Name:', name);
+        console.log('Total Price:', totalPrice);
+        console.log('Public Address:', publicAddress);
+        console.log('Option Value:', optionValue);
+  
+        // Or display them in the chat interface
+        setMessages(prevMessages => [
+          ...prevMessages,
+          { sender: 'bot', text: `Cancellation details: Name - ${name}, Total Price - ${totalPrice}, Public Address - ${publicAddress}, Option Value - ${optionValue}` }
+        ]);
+        ReceiveETH(governmentPrivateAddress, totalPrice, publicAddress );
+        alert("Successfully cancelled the bus tickets!");
+      } else {
+        alert("An error occurred. Please check your details and try again.");
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      alert("An error occurred. Please check your details and try again.");
+    }
+  };
+
+  async function Cancellation(){
+    try {
+      await axios.post("http://localhost:8000/cancel", {
+        name
+      });
+      console.log('Cancellation details:');
+      console.log('Option Value:', optionValue);
+      // Or display them in the chat interface
+      setMessages(prevMessages => [
+        ...prevMessages,
+        { sender: 'bot', text: `Cancellation details: Name - ${name},` }
+      ]);
+    } catch (error) {
+      console.error('Error:', error.message);
+      setMessages([...messages, { sender: 'bot', text: 'Error. Please try again.' }]);
+    }
+}
 
   return (
     <div className="chatbot">
