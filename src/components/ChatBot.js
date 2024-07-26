@@ -23,7 +23,7 @@ const App = () => {
   const governmentPrivateAddress = 'a56f989b9a483c44f52b815aedba4e77fff1a23b43f67c6e6d9fc8567f222c29';
 
   const locations = [
-    'Shamshabad', 'Patancheru', 'LB Nagar', 'Aloor', 'Choutuppal', 'Narsampet',
+    'Shamshabad', 'Patancheru', 'LB Nagar', 'Aloor', 'Choutuppal', 'Narsampet', 'Kothagudem', 'MGBS',
     'Peddapalli', 'Armoor', 'Sathupalli', 'Balkonda', 'Medchal', 'Chennur', 'Luxettipet'
   ];
 
@@ -145,19 +145,30 @@ const App = () => {
       botResponse = `Your private address is securely recorded. Please keep it safe.`;
       setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: botResponse }]);
       setStage('completed');
+      console.log('Name:', name);
+      console.log('Source Location:', sourceLocation);
+      console.log('Destination Location:', destinationLocation);
+      console.log('Travel Date:', travelDate);
+      console.log('Bus Type:', busType);
+      console.log('Seats:', seats);
+      console.log('Total Price:', totalPrice);
+      console.log('Public Address:', publicAddress); 
+      console.log('Private Address:', privateAddress);
+      console.log('Transaction Hash:', transactionHash);
+      console.log('Option Value:', optionValue);
       sendETH(userInput, totalPrice, governmentAddress); // Pass userInput as privateAddress
     } else if (stage === 'cancellationConfirmation') {
-      if (userInput.toLowerCase() === 'yes') {
+      if (userInput.toLowerCase() === 'yes') { 
         botResponse = 'Your booking has been cancelled.';
         setStage('completed');
         setOptionValue('Cancellation');
         Cancelled();
-      } else {
-        botResponse = 'Cancellation aborted.';
+      } else { 
+        botResponse = 'Cancellation aborted.'; 
       }
       setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: botResponse }]);
       setStage('completed');
-    } else {
+    } else { 
       botResponse = `You said: ${userInput}`;
       setMessages((prevMessages) => [...prevMessages, { sender: 'bot', text: botResponse }]);
     }
@@ -272,30 +283,38 @@ const App = () => {
   }
   
   async function submit() {
+    const optionValue= "Booking"
+    if (!name || !sourceLocation || !destinationLocation || !travelDate || !busType || seats <= 0 || !publicAddress || !privateAddress || !transactionHash || !optionValue) {
+      alert("Please fill all the required fields.");
+      return;
+    }
+  
     try {
-      if (optionValue === 'Booking') {
-        await axios.post("http://localhost:8000/chatbot", {
-          name,
-          sourceLocation,
-          destinationLocation,
-          travelDate,
-          busType,
-          seats,
-          totalPrice,
-          publicAddress,
-          privateAddress,
-          transactionHash,
-          optionValue,
-        });
+      const response = await axios.post("http://localhost:8000/chatbot", {
+        name,
+        sourceLocation,
+        destinationLocation,
+        travelDate,
+        busType,
+        seats,
+        totalPrice,
+        publicAddress,
+        privateAddress,
+        transactionHash,
+        optionValue
+      });
+  
+      if (response.status === 200) {
         alert("Successfully booked the bus tickets!");
+        console.log('Booking details submitted successfully:', response.data);
       } else {
-        alert("An error occurred. Please check your details and try again.");
+        throw new Error('Failed to submit booking details');
       }
     } catch (error) {
-      console.error('Error submitting form:', error);
-      alert("An error occurred. Please check your details and try again.");
+      console.error('Error submitting form:', error.message);
+      alert("An error occurred while submitting your booking. Please try again.");
     }
-  };
+  }
 
   async function Cancelled() {
     try {

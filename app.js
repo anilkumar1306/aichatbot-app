@@ -125,7 +125,7 @@ app.post('/cancel', async (req, res) => {
   const { name } = req.body;
 
   try {
-    const userData = await bookingend.deleteOne({ name });
+    const userData = await bookingend.deleteMany({ name });
     res.json(userData);
   } catch (e) {
     console.error('Error cancelling booking:', e);
